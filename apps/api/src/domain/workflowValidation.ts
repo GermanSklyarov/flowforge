@@ -1,4 +1,4 @@
-import { findNodeDefinition } from './nodeCatalog.ts';
+import { findNodeDefinition } from './nodeCatalog';
 
 export type WorkflowNode = {
   id: string;
@@ -155,4 +155,3 @@ function hasCycle(nodes: WorkflowNode[], edges: WorkflowEdge[]): boolean {
 
   return nodes.some((node) => visit(node.id));
 }
-

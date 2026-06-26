@@ -1,17 +1,21 @@
 {
   "compilerOptions": {
     "exactOptionalPropertyTypes": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2024", "DOM"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "jsx": "preserve",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
     "strict": true,
     "target": "ES2024",
-    "types": ["node"]
+    "types": ["node", "react", "react-dom"]
   },
-  "include": ["apps/**/*.ts", "scripts/**/*.ts"]
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "apps/**/.next"]
 }

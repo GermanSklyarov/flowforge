@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { validateWorkflow } from '../src/domain/workflowValidation.ts';
+import { validateWorkflow } from '../src/domain/workflowValidation';
 
 describe('validateWorkflow', () => {
   it('accepts a valid directed workflow', () => {
@@ -53,4 +53,3 @@ describe('validateWorkflow', () => {
     assert.match(result.errors[0]?.message ?? '', /cycles/);
   });
 });
-

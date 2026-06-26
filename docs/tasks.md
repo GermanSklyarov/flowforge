@@ -11,9 +11,9 @@
 
 ## Phase 2: Persistence
 
-- [ ] Add PostgreSQL connection and migrations.
-- [ ] Create workflow tables.
-- [ ] Implement workflow CRUD endpoints.
+- [x] Add PostgreSQL connection and migrations.
+- [x] Create workflow tables.
+- [x] Implement workflow CRUD endpoints.
 - [ ] Add integration tests for persistence.
 
 ## Phase 3: Execution
@@ -42,4 +42,3 @@
 - [ ] Add chunking and embeddings.
 - [ ] Add vector search.
 - [ ] Expose FlowForge tools through MCP.
-

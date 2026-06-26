@@ -11,13 +11,13 @@ FlowForge is an AI workflow platform with four primary surfaces:
 
 ## Planned Runtime Components
 
-- `apps/api`: HTTP API, workflow management, auth, task management, realtime gateway.
-- `apps/web`: browser application and workflow canvas.
+- `apps/api`: NestJS API, workflow management, auth, task management, realtime gateway.
+- `apps/web`: Next.js browser application and workflow canvas.
 - `apps/worker`: background execution runner powered by BullMQ.
 - `packages/workflow-core`: workflow graph types, validation, execution primitives.
 - `packages/mcp-server`: MCP interface that lets external assistants call FlowForge tools.
 
-The first milestone keeps the implementation dependency-light and colocates the domain logic inside `apps/api`. When persistence and execution arrive, the shared workflow logic can move into `packages/workflow-core`.
+The first milestone colocates the domain logic inside `apps/api`. When execution arrives, shared workflow logic can move into `packages/workflow-core`.
 
 ## Workflow Model
 
@@ -43,10 +43,9 @@ The first implemented slice is intentionally small:
 
 ```mermaid
 flowchart LR
-  Web["Static Web Shell"] --> API["API Service"]
+  Web["Next.js Web App"] --> API["NestJS API"]
   API --> Catalog["Node Catalog"]
   API --> Validator["Workflow Validator"]
 ```
 
 This gives us a runnable foundation while keeping the next steps clear.
-

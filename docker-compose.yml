@@ -2,20 +2,23 @@ services:
   api:
     image: node:24-alpine
     working_dir: /app
-    command: node apps/api/src/index.ts
+    command: sh -c "npm run db:migrate && npm run dev:api"
     environment:
       NODE_ENV: development
       API_HOST: 0.0.0.0
       API_PORT: 4000
+      DATABASE_URL: postgres://flowforge:flowforge@postgres:5432/flowforge
     ports:
       - "4000:4000"
     volumes:
       - .:/app
+    depends_on:
+      - postgres
 
   web:
     image: node:24-alpine
     working_dir: /app
-    command: node scripts/static-server.ts apps/web 5173
+    command: npm run dev:web
     environment:
       WEB_HOST: 0.0.0.0
       WEB_PORT: 5173
@@ -33,7 +36,7 @@ services:
       POSTGRES_USER: flowforge
       POSTGRES_PASSWORD: flowforge
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
 

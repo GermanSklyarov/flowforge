@@ -4,10 +4,10 @@ AI Workflow Platform: a visual automation builder that combines workflow orchest
 
 ## First Milestone
 
-This repository starts with a dependency-light foundation:
+This repository starts with a TypeScript product foundation:
 
-- TypeScript API service with health, readiness, node catalog, and workflow validation endpoints.
-- Static web shell with a visual workflow canvas mockup.
+- NestJS API service with health, readiness, node catalog, workflow validation, and workflow CRUD endpoints.
+- Next.js web app with a visual workflow canvas shell.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 
@@ -16,6 +16,7 @@ This repository starts with a dependency-light foundation:
 ```bash
 npm test
 npm run typecheck
+npm run db:migrate
 npm run dev
 ```
 
@@ -25,6 +26,11 @@ API:
 - `GET http://localhost:4000/ready`
 - `GET http://localhost:4000/catalog/nodes`
 - `POST http://localhost:4000/workflows/validate`
+- `GET http://localhost:4000/workflows`
+- `POST http://localhost:4000/workflows`
+- `GET http://localhost:4000/workflows/:id`
+- `PUT http://localhost:4000/workflows/:id`
+- `DELETE http://localhost:4000/workflows/:id`
 
 Web:
 
@@ -36,7 +42,8 @@ Docker:
 docker compose up --build
 ```
 
-Requires Node.js 24+ for native TypeScript execution in local development.
+Requires Node.js 24+.
+The local PostgreSQL port is `55432` to avoid collisions with a machine-level Postgres on `5432`.
 
 ## Roadmap
 

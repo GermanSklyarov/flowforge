@@ -10,7 +10,7 @@ type ManagedProcess = {
 type ProcessDefinition = readonly [name: string, command: string, args: readonly string[]];
 
 const processDefinitions = [
-  ['api', 'node', ['apps/api/src/index.ts']],
+  ['api', 'npm', ['run', 'dev:api']],
   ['web', 'npm', ['run', 'dev:web']]
 ] as const satisfies readonly ProcessDefinition[];
 
