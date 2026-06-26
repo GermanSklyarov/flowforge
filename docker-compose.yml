@@ -1,0 +1,46 @@
+services:
+  api:
+    image: node:24-alpine
+    working_dir: /app
+    command: node apps/api/src/index.ts
+    environment:
+      NODE_ENV: development
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+
+  web:
+    image: node:24-alpine
+    working_dir: /app
+    command: node scripts/static-server.ts apps/web 5173
+    environment:
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: 5173
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: flowforge
+      POSTGRES_USER: flowforge
+      POSTGRES_PASSWORD: flowforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres-data:

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2024", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "strict": true,
+    "target": "ES2024",
+    "types": ["node"]
+  },
+  "include": ["apps/**/*.ts", "scripts/**/*.ts"]
+}
