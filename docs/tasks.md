@@ -18,10 +18,10 @@
 
 ## Phase 3: Execution
 
-- [ ] Add Redis and BullMQ.
-- [ ] Add worker application.
-- [ ] Implement graph execution state machine.
-- [ ] Store execution logs and node statuses.
+- [x] Add Redis and BullMQ.
+- [x] Add worker application.
+- [x] Implement graph execution state machine.
+- [x] Store execution logs and node statuses.
 
 ## Phase 4: AI
 

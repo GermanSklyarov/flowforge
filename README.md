@@ -8,6 +8,7 @@ This repository starts with a TypeScript product foundation:
 
 - NestJS API service with health, readiness, node catalog, workflow validation, and workflow CRUD endpoints.
 - Next.js web app with a visual workflow canvas shell.
+- BullMQ worker that executes workflow graphs and stores execution history.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 
@@ -18,6 +19,7 @@ npm test
 npm run typecheck
 npm run db:migrate
 npm run dev
+npm run dev:worker
 ```
 
 API:
@@ -31,6 +33,9 @@ API:
 - `GET http://localhost:4000/workflows/:id`
 - `PUT http://localhost:4000/workflows/:id`
 - `DELETE http://localhost:4000/workflows/:id`
+- `POST http://localhost:4000/workflows/:id/run`
+- `GET http://localhost:4000/workflows/:id/executions`
+- `GET http://localhost:4000/workflows/:id/executions/:executionId`
 
 Web:
 
@@ -44,6 +49,7 @@ docker compose up --build
 
 Requires Node.js 24+.
 The local PostgreSQL port is `55432` to avoid collisions with a machine-level Postgres on `5432`.
+The local Redis port is `56379` to avoid collisions with a machine-level Redis on `6379`.
 
 ## Roadmap
 

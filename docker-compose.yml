@@ -2,23 +2,41 @@ services:
   api:
     image: node:24-alpine
     working_dir: /app
-    command: sh -c "npm run db:migrate && npm run dev:api"
+    command: sh -c "npm install && npm run db:migrate && npm run dev:api"
     environment:
       NODE_ENV: development
       API_HOST: 0.0.0.0
       API_PORT: 4000
       DATABASE_URL: postgres://flowforge:flowforge@postgres:5432/flowforge
+      REDIS_URL: redis://redis:6379
     ports:
       - "4000:4000"
     volumes:
       - .:/app
+      - api-node-modules:/app/node_modules
     depends_on:
       - postgres
+      - redis
+
+  worker:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run db:migrate && npm run dev:worker"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://flowforge:flowforge@postgres:5432/flowforge
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - .:/app
+      - worker-node-modules:/app/node_modules
+    depends_on:
+      - postgres
+      - redis
 
   web:
     image: node:24-alpine
     working_dir: /app
-    command: npm run dev:web
+    command: sh -c "npm install && npm run dev:web"
     environment:
       WEB_HOST: 0.0.0.0
       WEB_PORT: 5173
@@ -26,6 +44,7 @@ services:
       - "5173:5173"
     volumes:
       - .:/app
+      - web-node-modules:/app/node_modules
     depends_on:
       - api
 
@@ -43,7 +62,10 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "56379:6379"
 
 volumes:
   postgres-data:
+  api-node-modules:
+  worker-node-modules:
+  web-node-modules:
