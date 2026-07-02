@@ -72,3 +72,9 @@ Node runtime policy is configured on each node:
 - `config.timeoutMs`: maximum runtime for one attempt;
 - `config.retry.maxAttempts`: total attempts before the node fails;
 - `config.retry.delayMs`: delay between failed attempts.
+
+## AI Layer
+
+LLM execution is behind an `LlmProvider` contract. The default implementation is a deterministic local provider so development, tests, and Docker startup do not require external API keys.
+
+Production providers such as OpenAI or Anthropic can be added as separate implementations without changing the workflow runner or node handler contract.
