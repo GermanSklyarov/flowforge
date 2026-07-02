@@ -29,7 +29,7 @@
 ## Phase 4: AI
 
 - [x] Add LLM provider abstraction.
-- [ ] Add external LLM provider implementation.
+- [x] Add external LLM provider implementation.
 - [ ] Add streaming LLM node.
 - [ ] Add tool-calling node contract.
 - [ ] Add agent definitions.

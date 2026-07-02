@@ -3,6 +3,8 @@ import { getConfig } from '../../api/src/config';
 import { createPool } from '../../api/src/db/pool';
 import { PostgresExecutionRepository } from '../../api/src/db/postgresExecutionRepository';
 import { PostgresWorkflowRepository } from '../../api/src/db/postgresWorkflowRepository';
+import { createConfiguredLlmProvider } from '../../api/src/domain/llmProvider';
+import { createDefaultNodeHandlers } from '../../api/src/domain/nodeHandlers';
 import { runWorkflowGraph } from '../../api/src/domain/workflowRunner';
 import {
   EXECUTION_QUEUE_NAME,
@@ -19,6 +21,13 @@ if (!config.databaseUrl) {
 const pool = createPool({ connectionString: config.databaseUrl });
 const executionRepository = new PostgresExecutionRepository(pool);
 const workflowRepository = new PostgresWorkflowRepository(pool);
+const nodeHandlers = createDefaultNodeHandlers({
+  llmProvider: createConfiguredLlmProvider({
+    apiKey: config.openaiApiKey,
+    baseUrl: config.openaiBaseUrl,
+    model: config.openaiModel
+  })
+});
 const worker = new Worker<WorkflowExecutionJobData>(
   EXECUTION_QUEUE_NAME,
   async (job) => {
@@ -39,7 +48,8 @@ const worker = new Worker<WorkflowExecutionJobData>(
       executionId: execution.id,
       workflow,
       executionInput: execution.input,
-      executionRepository
+      executionRepository,
+      nodeHandlers
     });
   },
   {

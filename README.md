@@ -53,6 +53,12 @@ Requires Node.js 24+.
 The local PostgreSQL port is `55432` to avoid collisions with a machine-level Postgres on `5432`.
 The local Redis port is `56379` to avoid collisions with a machine-level Redis on `6379`.
 
+LLM execution:
+
+- Set `OPENAI_API_KEY` in `.env` to use the OpenAI Responses API from the worker.
+- Set `OPENAI_MODEL` to override the default `gpt-4.1-mini`.
+- Without `OPENAI_API_KEY`, FlowForge uses a deterministic local provider for development and tests.
+
 ## Roadmap
 
 1. Project foundation: repository structure, API skeleton, workflow domain model, editor shell, Docker Compose.
