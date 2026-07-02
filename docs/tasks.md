@@ -24,7 +24,7 @@
 - [x] Store execution logs and node statuses.
 - [x] Add typed node handler registry.
 - [x] Add decision node branch routing.
-- [ ] Add retry and timeout policy per node.
+- [x] Add retry and timeout policy per node.
 
 ## Phase 4: AI
 

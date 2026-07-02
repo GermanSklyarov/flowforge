@@ -9,7 +9,7 @@ This repository starts with a TypeScript product foundation:
 - NestJS API service with health, readiness, node catalog, workflow validation, and workflow CRUD endpoints.
 - Next.js web app with a visual workflow canvas shell.
 - BullMQ worker that executes workflow graphs and stores execution history.
-- Typed workflow node handler registry with first stub handlers for webhook, email, text extraction, LLM, decision, task creation, and Telegram notification nodes.
+- Typed workflow node handler registry with per-node retry and timeout policy.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 
@@ -56,7 +56,7 @@ The local Redis port is `56379` to avoid collisions with a machine-level Redis o
 
 1. Project foundation: repository structure, API skeleton, workflow domain model, editor shell, Docker Compose.
 2. Persistent workflows: PostgreSQL schema, migrations, workflow CRUD, validation at write time.
-3. Execution engine: graph runner, typed node handlers, decision routing, BullMQ queue, worker process, retries, execution history.
+3. Execution engine: graph runner, typed node handlers, decision routing, per-node retry and timeout policy, BullMQ queue, worker process, execution history.
 4. LLM integration: provider abstraction, streaming responses, prompt templates, tool calling contract.
 5. Realtime UX: WebSocket event stream for agent steps, node status, logs, and partial LLM output.
 6. Task management: Jira-like projects, tasks, comments, labels, assignments, workflow-created tasks.

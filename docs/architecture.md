@@ -55,7 +55,7 @@ This gives us a runnable foundation while keeping the next steps clear.
 
 ## Execution Model
 
-The worker runs a workflow by sorting the graph, activating start nodes, executing each active node through a handler registry, and storing node-level input/output history.
+The worker runs a workflow by sorting the graph, activating start nodes, executing each active node through a handler registry, applying per-node retry and timeout policy, and storing node-level input/output history.
 
 Current handlers are deterministic stubs for the first product slice:
 
@@ -66,3 +66,9 @@ Current handlers are deterministic stubs for the first product slice:
 - task and notification nodes return simulated delivery records.
 
 Real external integrations will replace these stubs behind the same handler contract.
+
+Node runtime policy is configured on each node:
+
+- `config.timeoutMs`: maximum runtime for one attempt;
+- `config.retry.maxAttempts`: total attempts before the node fails;
+- `config.retry.delayMs`: delay between failed attempts.

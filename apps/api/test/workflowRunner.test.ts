@@ -94,4 +94,110 @@ describe('runWorkflowGraph', () => {
       'false'
     );
   });
+
+  it('retries failed nodes according to node retry policy', async () => {
+    const workflowRepository = new InMemoryWorkflowRepository();
+    const executionRepository = new InMemoryExecutionRepository();
+    const workflow = await workflowRepository.create({
+      definition: {
+        name: 'Retry policy',
+        nodes: [
+          {
+            id: 'llm',
+            type: 'ai.llm',
+            config: {
+              retry: {
+                maxAttempts: 2,
+                delayMs: 0
+              }
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+    const execution = await executionRepository.createQueued({ workflow });
+    let attempts = 0;
+
+    await runWorkflowGraph({
+      executionId: execution.id,
+      workflow,
+      executionInput: execution.input,
+      executionRepository,
+      nodeHandlers: {
+        'ai.llm': async () => {
+          attempts += 1;
+
+          if (attempts === 1) {
+            throw new Error('Temporary provider failure.');
+          }
+
+          return {
+            output: {
+              response: 'ok'
+            }
+          };
+        }
+      }
+    });
+
+    const nodeExecutions = await executionRepository.listNodesByExecutionId(execution.id);
+
+    assert.equal(attempts, 2);
+    assert.equal(nodeExecutions[0]?.status, 'succeeded');
+    assert.equal(nodeExecutions[0]?.output?.attempts, 2);
+    assert.equal(nodeExecutions[0]?.output?.response, 'ok');
+  });
+
+  it('fails timed out nodes and marks workflow execution as failed', async () => {
+    const workflowRepository = new InMemoryWorkflowRepository();
+    const executionRepository = new InMemoryExecutionRepository();
+    const workflow = await workflowRepository.create({
+      definition: {
+        name: 'Timeout policy',
+        nodes: [
+          {
+            id: 'slow',
+            type: 'ai.llm',
+            config: {
+              timeoutMs: 1
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+    const execution = await executionRepository.createQueued({ workflow });
+
+    await assert.rejects(
+      runWorkflowGraph({
+        executionId: execution.id,
+        workflow,
+        executionInput: execution.input,
+        executionRepository,
+        nodeHandlers: {
+          'ai.llm': async () => {
+            await new Promise((resolve) => {
+              setTimeout(resolve, 25);
+            });
+
+            return {
+              output: {
+                response: 'too late'
+              }
+            };
+          }
+        }
+      }),
+      /timed out/
+    );
+
+    const finishedExecution = await executionRepository.findById(execution.id);
+    const nodeExecutions = await executionRepository.listNodesByExecutionId(execution.id);
+
+    assert.equal(finishedExecution?.status, 'failed');
+    assert.match(finishedExecution?.error ?? '', /timed out/);
+    assert.equal(nodeExecutions[0]?.status, 'failed');
+    assert.match(nodeExecutions[0]?.error ?? '', /timed out/);
+  });
 });

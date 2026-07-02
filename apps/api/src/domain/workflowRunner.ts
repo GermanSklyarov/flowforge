@@ -1,4 +1,5 @@
 import type { ExecutionRepository } from './executionRepository';
+import { resolveNodeExecutionPolicy, type NodeExecutionPolicy } from './nodeExecutionPolicy';
 import { defaultNodeHandlers, type NodeHandlerRegistry, type NodeHandlerResult } from './nodeHandlers';
 import type { WorkflowRecord } from './workflowRepository';
 import type { WorkflowEdge, WorkflowNode } from './workflowValidation';
@@ -42,6 +43,7 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
         input.workflow.definition.edges,
         outputsByNodeId
       );
+      const policy = resolveNodeExecutionPolicy(node);
 
       const nodeExecution = await input.executionRepository.startNode({
         executionId: input.executionId,
@@ -50,16 +52,29 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
         input: {
           executionInput: input.executionInput ?? {},
           inboundOutputs,
-          config: node.config ?? {}
+          config: node.config ?? {},
+          policy
         }
       });
 
-      const result = await executeNode(node, {
-        executionInput: input.executionInput ?? {},
-        inboundOutputs,
-        nodeHandlers
+      const result = await runNodeWithPolicy(
+        node,
+        {
+          executionInput: input.executionInput ?? {},
+          inboundOutputs,
+          nodeHandlers
+        },
+        policy
+      ).catch(async (error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Workflow node execution failed.';
+        await input.executionRepository.failNode(nodeExecution.id, message);
+        throw error;
       });
-      await input.executionRepository.completeNode(nodeExecution.id, result.output);
+
+      await input.executionRepository.completeNode(nodeExecution.id, {
+        ...result.output,
+        attempts: result.attempts
+      });
       outputsByNodeId.set(node.id, result.output);
       visitedNodeIds.push(node.id);
       activateNextNodes({
@@ -102,6 +117,67 @@ async function executeNode(
     executionInput: input.executionInput,
     inboundOutputs: input.inboundOutputs,
     node
+  });
+}
+
+async function runNodeWithPolicy(
+  node: WorkflowNode,
+  input: {
+    executionInput: Record<string, unknown>;
+    inboundOutputs: Record<string, Record<string, unknown>>;
+    nodeHandlers: NodeHandlerRegistry;
+  },
+  policy: NodeExecutionPolicy
+): Promise<NodeHandlerResult & { attempts: number }> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= policy.maxAttempts; attempt += 1) {
+    try {
+      const result = await withTimeout(executeNode(node, input), policy.timeoutMs, node.id);
+      return {
+        ...result,
+        attempts: attempt
+      };
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === policy.maxAttempts) {
+        break;
+      }
+
+      await sleep(policy.retryDelayMs);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Workflow node execution failed.');
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, nodeId: string): Promise<T> {
+  let timeout: NodeJS.Timeout | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(new Error(`Node "${nodeId}" timed out after ${timeoutMs}ms.`));
+        }, timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+async function sleep(delayMs: number): Promise<void> {
+  if (delayMs === 0) {
+    return;
+  }
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
   });
 }
 
