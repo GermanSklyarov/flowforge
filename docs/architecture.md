@@ -24,7 +24,7 @@ The first milestone colocates the domain logic inside `apps/api`. When execution
 A workflow is a directed graph:
 
 - `nodes`: typed units such as webhook, LLM, decision, task creation, Telegram notification.
-- `edges`: transitions from one node output to another node input.
+- `edges`: transitions from one node output to another node input. Decision nodes can select an output port to activate only the matching branch.
 - `metadata`: name, version, status, owner, timestamps.
 
 Validation rules in the first milestone:
@@ -52,3 +52,17 @@ flowchart LR
 ```
 
 This gives us a runnable foundation while keeping the next steps clear.
+
+## Execution Model
+
+The worker runs a workflow by sorting the graph, activating start nodes, executing each active node through a handler registry, and storing node-level input/output history.
+
+Current handlers are deterministic stubs for the first product slice:
+
+- triggers and sources normalize incoming execution input;
+- transform nodes pass extracted text forward;
+- LLM nodes return a local placeholder response;
+- decision nodes select an output port;
+- task and notification nodes return simulated delivery records.
+
+Real external integrations will replace these stubs behind the same handler contract.

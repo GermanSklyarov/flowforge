@@ -22,6 +22,9 @@
 - [x] Add worker application.
 - [x] Implement graph execution state machine.
 - [x] Store execution logs and node statuses.
+- [x] Add typed node handler registry.
+- [x] Add decision node branch routing.
+- [ ] Add retry and timeout policy per node.
 
 ## Phase 4: AI
 
