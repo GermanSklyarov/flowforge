@@ -31,7 +31,7 @@
 - [x] Add LLM provider abstraction.
 - [x] Add external LLM provider implementation.
 - [x] Add streaming LLM node.
-- [ ] Add tool-calling node contract.
+- [x] Add tool-calling node contract.
 - [ ] Add agent definitions.
 
 ## Phase 5: Realtime

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { LlmProvider } from '../src/domain/llmProvider';
 import { createDefaultNodeHandlers } from '../src/domain/nodeHandlers';
+import { defaultToolRegistry } from '../src/domain/toolRegistry';
 
 describe('createDefaultNodeHandlers', () => {
   it('executes LLM nodes through the configured provider', async () => {
@@ -24,7 +25,8 @@ describe('createDefaultNodeHandlers', () => {
         async *streamText() {
           throw new Error('Unexpected streamText call.');
         }
-      }
+      },
+      toolRegistry: defaultToolRegistry
     });
 
     const llmHandler = handlers['ai.llm'];
@@ -125,4 +127,107 @@ describe('createDefaultNodeHandlers', () => {
       }
     });
   });
+
+  it('executes registered tools with structured arguments', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const handlers = createDefaultNodeHandlers({
+      llmProvider: createUnexpectedLlmProvider(),
+      toolRegistry: {
+        createTask: {
+          name: 'createTask',
+          description: 'Creates a task.',
+          async execute(arguments_) {
+            calls.push(arguments_);
+
+            return {
+              task: {
+                id: 'task_test',
+                title: arguments_.title
+              }
+            };
+          }
+        }
+      }
+    });
+    const toolHandler = handlers['ai.toolCall'];
+
+    assert.ok(toolHandler);
+
+    const result = await toolHandler({
+      executionInput: {},
+      inboundOutputs: {
+        llm: {
+          arguments: {
+            title: 'From inbound',
+            description: 'From inbound output'
+          }
+        }
+      },
+      node: {
+        id: 'tool',
+        type: 'ai.toolCall',
+        config: {
+          toolName: 'createTask',
+          arguments: {
+            title: 'From config'
+          }
+        }
+      }
+    });
+
+    assert.deepEqual(calls, [
+      {
+        title: 'From config',
+        description: 'From inbound output'
+      }
+    ]);
+    assert.deepEqual(result.output, {
+      toolCall: {
+        name: 'createTask',
+        arguments: {
+          title: 'From config',
+          description: 'From inbound output'
+        }
+      },
+      result: {
+        task: {
+          id: 'task_test',
+          title: 'From config'
+        }
+      }
+    });
+  });
+
+  it('rejects tool call nodes without a tool name', async () => {
+    const handlers = createDefaultNodeHandlers({
+      llmProvider: createUnexpectedLlmProvider(),
+      toolRegistry: defaultToolRegistry
+    });
+    const toolHandler = handlers['ai.toolCall'];
+
+    assert.ok(toolHandler);
+
+    await assert.rejects(
+      toolHandler({
+        executionInput: {},
+        inboundOutputs: {},
+        node: {
+          id: 'tool',
+          type: 'ai.toolCall'
+        }
+      }),
+      /requires config\.toolName/
+    );
+  });
 });
+
+function createUnexpectedLlmProvider(): LlmProvider {
+  return {
+    async generateText() {
+      throw new Error('Unexpected generateText call.');
+    },
+    async *streamText() {
+      throw new Error('Unexpected streamText call.');
+    }
+  };
+}

@@ -11,6 +11,7 @@ This repository starts with a TypeScript product foundation:
 - BullMQ worker that executes workflow graphs and stores execution history.
 - Typed workflow node handler registry with per-node retry and timeout policy.
 - LLM provider abstraction with deterministic local, OpenAI Responses, and streaming response support.
+- Tool-calling contract with a registry for FlowForge actions.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 

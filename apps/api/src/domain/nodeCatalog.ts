@@ -49,6 +49,14 @@ export const nodeCatalog = [
     outputs: ['response', 'chunks']
   },
   {
+    type: 'ai.toolCall',
+    label: 'Tool Call',
+    group: 'AI',
+    description: 'Calls a registered FlowForge tool with structured arguments.',
+    inputs: ['arguments'],
+    outputs: ['result']
+  },
+  {
     type: 'logic.decision',
     label: 'Decision',
     group: 'Logic',

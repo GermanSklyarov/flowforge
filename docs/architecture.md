@@ -81,4 +81,6 @@ The worker switches to the OpenAI Responses API provider when `OPENAI_API_KEY` i
 
 Streaming is exposed through the same provider contract as an async event stream. The first streaming node stores collected chunks in execution history; Phase 5 will forward those deltas to the editor over WebSocket.
 
+Tool calling uses a separate `ToolRegistry` contract. The first tools are deterministic FlowForge actions such as `createTask` and `searchUsers`, and the `ai.toolCall` node executes registered tools with structured arguments. This same registry is the planned source of truth for MCP-exposed tools.
+
 Additional providers such as Anthropic can be added as separate implementations without changing the workflow runner or node handler contract.

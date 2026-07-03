@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { LocalLlmProvider, type LlmProvider } from './llmProvider';
+import { callTool, defaultToolRegistry, type ToolRegistry } from './toolRegistry';
 import type { WorkflowNode } from './workflowValidation';
 
 export type NodeHandlerContext = {
@@ -19,15 +20,22 @@ export type NodeHandlerRegistry = Record<string, NodeHandler>;
 
 export type NodeHandlerDependencies = {
   llmProvider: LlmProvider;
+  toolRegistry: ToolRegistry;
 };
 
 const defaultNodeHandlerDependencies: NodeHandlerDependencies = {
-  llmProvider: new LocalLlmProvider()
+  llmProvider: new LocalLlmProvider(),
+  toolRegistry: defaultToolRegistry
 };
 
 export function createDefaultNodeHandlers(
-  dependencies: NodeHandlerDependencies = defaultNodeHandlerDependencies
+  overrides: Partial<NodeHandlerDependencies> = {}
 ): NodeHandlerRegistry {
+  const dependencies: NodeHandlerDependencies = {
+    ...defaultNodeHandlerDependencies,
+    ...overrides
+  };
+
   return {
     'trigger.webhook': async ({ executionInput }) => {
       return {
@@ -120,6 +128,21 @@ export function createDefaultNodeHandlers(
       };
     },
 
+    'ai.toolCall': async ({ inboundOutputs, node }) => {
+      const toolCall = resolveToolCallInput(inboundOutputs, node);
+      const result = await callTool(dependencies.toolRegistry, toolCall);
+
+      return {
+        output: {
+          toolCall: {
+            name: result.name,
+            arguments: toolCall.arguments
+          },
+          result: result.result
+        }
+      };
+    },
+
     'logic.decision': async ({ inboundOutputs, node }) => {
       const configuredRoute = node.config?.route;
       const selectedOutputPort =
@@ -192,6 +215,32 @@ function resolveLlmInput(
   };
 }
 
+function resolveToolCallInput(
+  inboundOutputs: Record<string, Record<string, unknown>>,
+  node: WorkflowNode
+): { name: string; arguments: Record<string, unknown> } {
+  const name = firstString([
+    node.config?.toolName,
+    ...Object.values(inboundOutputs).map((output) => output.toolName)
+  ]);
+
+  if (!name) {
+    throw new Error(`Node "${node.id}" requires config.toolName.`);
+  }
+
+  const configuredArguments = isRecord(node.config?.arguments) ? node.config.arguments : {};
+  const inboundArguments = Object.values(inboundOutputs).find((output) => isRecord(output.arguments))
+    ?.arguments;
+
+  return {
+    name,
+    arguments: {
+      ...(isRecord(inboundArguments) ? inboundArguments : {}),
+      ...configuredArguments
+    }
+  };
+}
+
 function firstString(values: unknown[]): string | null {
   for (const value of values) {
     if (typeof value === 'string' && value.trim().length > 0) {
@@ -200,4 +249,8 @@ function firstString(values: unknown[]): string | null {
   }
 
   return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
