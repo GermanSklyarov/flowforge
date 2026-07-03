@@ -41,6 +41,14 @@ export const nodeCatalog = [
     outputs: ['response']
   },
   {
+    type: 'ai.llm.stream',
+    label: 'Streaming LLM',
+    group: 'AI',
+    description: 'Streams a language model response as incremental text chunks.',
+    inputs: ['prompt', 'context'],
+    outputs: ['response', 'chunks']
+  },
+  {
     type: 'logic.decision',
     label: 'Decision',
     group: 'Logic',
@@ -71,4 +79,3 @@ export type NodeType = (typeof nodeCatalog)[number]['type'];
 export function findNodeDefinition(type: string): NodeDefinition | undefined {
   return nodeCatalog.find((definition) => definition.type === type);
 }
-

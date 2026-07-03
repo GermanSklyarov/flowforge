@@ -20,6 +20,9 @@ describe('createDefaultNodeHandlers', () => {
               outputTokens: 4
             }
           };
+        },
+        async *streamText() {
+          throw new Error('Unexpected streamText call.');
         }
       }
     });
@@ -59,6 +62,66 @@ describe('createDefaultNodeHandlers', () => {
       usage: {
         inputTokens: 3,
         outputTokens: 4
+      }
+    });
+  });
+
+  it('executes streaming LLM nodes and stores chunks', async () => {
+    const handlers = createDefaultNodeHandlers({
+      llmProvider: {
+        async generateText() {
+          throw new Error('Unexpected generateText call.');
+        },
+        async *streamText() {
+          yield {
+            type: 'delta',
+            text: 'Hello '
+          };
+          yield {
+            type: 'delta',
+            text: 'there'
+          };
+          yield {
+            type: 'completed',
+            model: 'stream-model',
+            provider: 'test',
+            usage: {
+              inputTokens: 2,
+              outputTokens: 3
+            }
+          };
+        }
+      }
+    });
+    const streamHandler = handlers['ai.llm.stream'];
+
+    assert.ok(streamHandler);
+
+    const result = await streamHandler({
+      executionInput: {},
+      inboundOutputs: {
+        extract: {
+          text: 'Greeting request'
+        }
+      },
+      node: {
+        id: 'stream',
+        type: 'ai.llm.stream',
+        config: {
+          prompt: 'Greet'
+        }
+      }
+    });
+
+    assert.deepEqual(result.output, {
+      response: 'Hello there',
+      chunks: ['Hello ', 'there'],
+      streamed: true,
+      model: 'stream-model',
+      provider: 'test',
+      usage: {
+        inputTokens: 2,
+        outputTokens: 3
       }
     });
   });

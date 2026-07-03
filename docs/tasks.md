@@ -30,7 +30,7 @@
 
 - [x] Add LLM provider abstraction.
 - [x] Add external LLM provider implementation.
-- [ ] Add streaming LLM node.
+- [x] Add streaming LLM node.
 - [ ] Add tool-calling node contract.
 - [ ] Add agent definitions.
 

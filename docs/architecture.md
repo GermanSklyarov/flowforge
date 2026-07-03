@@ -79,4 +79,6 @@ LLM execution is behind an `LlmProvider` contract. The default implementation is
 
 The worker switches to the OpenAI Responses API provider when `OPENAI_API_KEY` is configured. The provider posts typed developer and user messages to `/responses`, reads `output_text` or nested `output_text` message content, and records model/provider/token usage in node output.
 
+Streaming is exposed through the same provider contract as an async event stream. The first streaming node stores collected chunks in execution history; Phase 5 will forward those deltas to the editor over WebSocket.
+
 Additional providers such as Anthropic can be added as separate implementations without changing the workflow runner or node handler contract.

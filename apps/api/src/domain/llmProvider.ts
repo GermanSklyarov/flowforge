@@ -14,8 +14,21 @@ export type GenerateTextResult = {
   };
 };
 
+export type StreamTextEvent =
+  | {
+      type: 'delta';
+      text: string;
+    }
+  | {
+      type: 'completed';
+      model: string;
+      provider: string;
+      usage: GenerateTextResult['usage'];
+    };
+
 export type LlmProvider = {
   generateText(input: GenerateTextInput): Promise<GenerateTextResult>;
+  streamText(input: GenerateTextInput): AsyncIterable<StreamTextEvent>;
 };
 
 export type OpenAIResponsesLlmProviderConfig = {
@@ -37,6 +50,21 @@ export class LocalLlmProvider implements LlmProvider {
         inputTokens: estimateTokens([input.instruction, input.inputText].filter(Boolean).join(' ')),
         outputTokens: estimateTokens(text)
       }
+    };
+  }
+
+  async *streamText(input: GenerateTextInput): AsyncIterable<StreamTextEvent> {
+    const result = await this.generateText(input);
+
+    yield {
+      type: 'delta',
+      text: result.text
+    };
+    yield {
+      type: 'completed',
+      model: result.model,
+      provider: result.provider,
+      usage: result.usage
     };
   }
 }
@@ -97,6 +125,60 @@ export class OpenAIResponsesLlmProvider implements LlmProvider {
       usage: readUsage(payload)
     };
   }
+
+  async *streamText(input: GenerateTextInput): AsyncIterable<StreamTextEvent> {
+    const model = input.model ?? this.#model;
+    const response = await this.#fetch(`${this.#baseUrl}/responses`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${this.#apiKey}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        input: createResponseInput(input),
+        store: false,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const payload = await readJson(response);
+      throw new Error(readOpenAIError(payload, response.status));
+    }
+
+    if (!response.body) {
+      throw new Error('OpenAI streaming response did not include a body.');
+    }
+
+    for await (const payload of readServerSentEvents(response.body)) {
+      if (!isRecord(payload)) {
+        continue;
+      }
+
+      if (payload.type === 'error') {
+        throw new Error(readOpenAIError(payload, response.status));
+      }
+
+      if (payload.type === 'response.output_text.delta' && typeof payload.delta === 'string') {
+        yield {
+          type: 'delta',
+          text: payload.delta
+        };
+      }
+
+      if (payload.type === 'response.completed') {
+        const completedResponse = isRecord(payload.response) ? payload.response : payload;
+
+        yield {
+          type: 'completed',
+          model: readString(completedResponse, 'model') ?? model,
+          provider: 'openai',
+          usage: readUsage(completedResponse)
+        };
+      }
+    }
+  }
 }
 
 export function createConfiguredLlmProvider(input: {
@@ -121,6 +203,19 @@ async function readJson(response: Response): Promise<unknown> {
   } catch {
     return null;
   }
+}
+
+function createResponseInput(input: GenerateTextInput): Array<{ role: string; content: string }> {
+  return [
+    {
+      role: 'developer',
+      content: input.instruction
+    },
+    {
+      role: 'user',
+      content: input.inputText ?? ''
+    }
+  ];
 }
 
 function readOpenAIError(payload: unknown, status: number): string {
@@ -159,6 +254,64 @@ function readResponseText(payload: unknown): string | null {
   }
 
   return chunks.length > 0 ? chunks.join('\n') : null;
+}
+
+async function* readServerSentEvents(stream: ReadableStream<Uint8Array>): AsyncIterable<unknown> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() ?? '';
+
+      for (const event of events) {
+        const payload = parseServerSentEvent(event);
+
+        if (payload) {
+          yield payload;
+        }
+      }
+    }
+
+    buffer += decoder.decode();
+
+    if (buffer.trim().length > 0) {
+      const payload = parseServerSentEvent(buffer);
+
+      if (payload) {
+        yield payload;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function parseServerSentEvent(event: string): unknown | null {
+  const data = event
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice('data:'.length).trimStart())
+    .join('\n');
+
+  if (!data || data === '[DONE]') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
 }
 
 function readUsage(payload: unknown): GenerateTextResult['usage'] {

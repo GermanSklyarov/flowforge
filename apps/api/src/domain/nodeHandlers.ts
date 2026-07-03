@@ -65,19 +65,11 @@ export function createDefaultNodeHandlers(
     },
 
     'ai.llm': async ({ inboundOutputs, node }) => {
-      const sourceText = firstString(
-        Object.values(inboundOutputs).flatMap((output) => [
-          output.text,
-          output.prompt,
-          output.message
-        ])
-      );
-      const instruction = typeof node.config?.prompt === 'string' ? node.config.prompt : 'Summarize';
-      const model = typeof node.config?.model === 'string' ? node.config.model : null;
+      const llmInput = resolveLlmInput(inboundOutputs, node);
       const result = await dependencies.llmProvider.generateText({
-        instruction,
-        inputText: sourceText,
-        model
+        instruction: llmInput.instruction,
+        inputText: llmInput.sourceText,
+        model: llmInput.model
       });
 
       return {
@@ -86,6 +78,44 @@ export function createDefaultNodeHandlers(
           model: result.model,
           provider: result.provider,
           usage: result.usage
+        }
+      };
+    },
+
+    'ai.llm.stream': async ({ inboundOutputs, node }) => {
+      const llmInput = resolveLlmInput(inboundOutputs, node);
+      const chunks: string[] = [];
+      let metadata: { model: string; provider: string; usage: Record<string, unknown> } | null = null;
+
+      for await (const event of dependencies.llmProvider.streamText({
+        instruction: llmInput.instruction,
+        inputText: llmInput.sourceText,
+        model: llmInput.model
+      })) {
+        if (event.type === 'delta') {
+          chunks.push(event.text);
+        }
+
+        if (event.type === 'completed') {
+          metadata = {
+            model: event.model,
+            provider: event.provider,
+            usage: event.usage
+          };
+        }
+      }
+
+      return {
+        output: {
+          response: chunks.join(''),
+          chunks,
+          streamed: true,
+          model: metadata?.model ?? llmInput.model,
+          provider: metadata?.provider ?? 'unknown',
+          usage: metadata?.usage ?? {
+            inputTokens: 0,
+            outputTokens: 0
+          }
         }
       };
     },
@@ -148,6 +178,19 @@ export function createDefaultNodeHandlers(
 }
 
 export const defaultNodeHandlers: NodeHandlerRegistry = createDefaultNodeHandlers();
+
+function resolveLlmInput(
+  inboundOutputs: Record<string, Record<string, unknown>>,
+  node: WorkflowNode
+): { instruction: string; model: string | null; sourceText: string | null } {
+  return {
+    instruction: typeof node.config?.prompt === 'string' ? node.config.prompt : 'Summarize',
+    model: typeof node.config?.model === 'string' ? node.config.model : null,
+    sourceText: firstString(
+      Object.values(inboundOutputs).flatMap((output) => [output.text, output.prompt, output.message])
+    )
+  };
+}
 
 function firstString(values: unknown[]): string | null {
   for (const value of values) {

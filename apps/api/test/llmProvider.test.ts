@@ -118,6 +118,92 @@ describe('OpenAIResponsesLlmProvider', () => {
       /Invalid API key/
     );
   });
+
+  it('streams text deltas from server-sent response events', async () => {
+    const requests: Array<{ body: unknown }> = [];
+    const provider = new OpenAIResponsesLlmProvider({
+      apiKey: 'test-key',
+      model: 'gpt-test',
+      fetch: async (_url, init) => {
+        requests.push({
+          body: JSON.parse(String(init?.body))
+        });
+
+        return new Response(
+          encodeSse([
+            {
+              type: 'response.output_text.delta',
+              delta: 'Hello '
+            },
+            {
+              type: 'response.output_text.delta',
+              delta: 'there'
+            },
+            {
+              type: 'response.completed',
+              response: {
+                model: 'gpt-test',
+                usage: {
+                  input_tokens: 2,
+                  output_tokens: 3
+                }
+              }
+            }
+          ]),
+          {
+            headers: {
+              'content-type': 'text/event-stream'
+            }
+          }
+        );
+      }
+    });
+
+    const events = [];
+
+    for await (const event of provider.streamText({
+      instruction: 'Greet',
+      inputText: 'German',
+      model: null
+    })) {
+      events.push(event);
+    }
+
+    assert.deepEqual(requests[0]?.body, {
+      model: 'gpt-test',
+      input: [
+        {
+          role: 'developer',
+          content: 'Greet'
+        },
+        {
+          role: 'user',
+          content: 'German'
+        }
+      ],
+      store: false,
+      stream: true
+    });
+    assert.deepEqual(events, [
+      {
+        type: 'delta',
+        text: 'Hello '
+      },
+      {
+        type: 'delta',
+        text: 'there'
+      },
+      {
+        type: 'completed',
+        model: 'gpt-test',
+        provider: 'openai',
+        usage: {
+          inputTokens: 2,
+          outputTokens: 3
+        }
+      }
+    ]);
+  });
 });
 
 describe('createConfiguredLlmProvider', () => {
@@ -130,3 +216,7 @@ describe('createConfiguredLlmProvider', () => {
     assert.ok(provider instanceof LocalLlmProvider);
   });
 });
+
+function encodeSse(events: unknown[]): string {
+  return events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('');
+}

@@ -10,7 +10,7 @@ This repository starts with a TypeScript product foundation:
 - Next.js web app with a visual workflow canvas shell.
 - BullMQ worker that executes workflow graphs and stores execution history.
 - Typed workflow node handler registry with per-node retry and timeout policy.
-- LLM provider abstraction with a deterministic local provider for development and tests.
+- LLM provider abstraction with deterministic local, OpenAI Responses, and streaming response support.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 
