@@ -38,7 +38,7 @@
 
 - [x] Add WebSocket gateway.
 - [x] Stream execution events to the editor.
-- [ ] Show live node status and LLM partial output.
+- [x] Show live node status and LLM partial output.
 
 ## Phase 6: RAG and MCP
 

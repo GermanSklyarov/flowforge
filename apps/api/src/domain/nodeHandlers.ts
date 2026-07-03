@@ -9,9 +9,15 @@ import { callTool, defaultToolRegistry, type ToolRegistry } from './toolRegistry
 import type { WorkflowNode } from './workflowValidation';
 
 export type NodeHandlerContext = {
+  emit?(event: NodeHandlerEvent): void;
   executionInput: Record<string, unknown>;
   inboundOutputs: Record<string, Record<string, unknown>>;
   node: WorkflowNode;
+};
+
+export type NodeHandlerEvent = {
+  type: 'node.output.delta';
+  text: string;
 };
 
 export type NodeHandlerResult = {
@@ -97,7 +103,7 @@ export function createDefaultNodeHandlers(
       };
     },
 
-    'ai.llm.stream': async ({ inboundOutputs, node }) => {
+    'ai.llm.stream': async ({ emit, inboundOutputs, node }) => {
       const llmInput = resolveLlmInput(inboundOutputs, node);
       const chunks: string[] = [];
       let metadata: { model: string; provider: string; usage: Record<string, unknown> } | null = null;
@@ -109,6 +115,10 @@ export function createDefaultNodeHandlers(
       })) {
         if (event.type === 'delta') {
           chunks.push(event.text);
+          emit?.({
+            type: 'node.output.delta',
+            text: event.text
+          });
         }
 
         if (event.type === 'completed') {

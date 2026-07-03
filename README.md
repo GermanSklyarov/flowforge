@@ -13,7 +13,7 @@ This repository starts with a TypeScript product foundation:
 - LLM provider abstraction with deterministic local, OpenAI Responses, and streaming response support.
 - Tool-calling contract with a registry for FlowForge actions.
 - Agent registry with a first task-breakdown agent.
-- Redis-backed execution event stream exposed through a NestJS WebSocket gateway.
+- Redis-backed execution event stream with live node status and LLM partial output.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 

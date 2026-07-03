@@ -1,14 +1,16 @@
+import type { CSSProperties } from 'react';
+import { RealtimePanel } from './realtime-panel';
+
 const workflowNodes = [
-  { kind: 'Webhook', title: 'Email received', className: 'trigger', x: 2, y: 2 },
-  { kind: 'Transform', title: 'Extract text', className: 'transform', x: 2, y: 9 },
-  { kind: 'AI', title: 'Summarize with GPT', className: 'ai', x: 9, y: 9 },
-  { kind: 'Decision', title: 'Needs action?', className: 'logic', x: 16, y: 9 },
-  { kind: 'Task', title: 'Create task', className: 'task', x: 16, y: 16 },
-  { kind: 'Notify', title: 'Telegram', className: 'notify', x: 23, y: 16 }
+  { id: 'email', kind: 'Webhook', title: 'Email received', className: 'trigger', x: 2, y: 2 },
+  { id: 'extract', kind: 'Transform', title: 'Extract text', className: 'transform', x: 2, y: 9 },
+  { id: 'llm', kind: 'AI', title: 'Summarize with GPT', className: 'ai', x: 9, y: 9 },
+  { id: 'decision', kind: 'Decision', title: 'Needs action?', className: 'logic', x: 16, y: 9 },
+  { id: 'task', kind: 'Task', title: 'Create task', className: 'task', x: 16, y: 16 },
+  { id: 'telegram', kind: 'Notify', title: 'Telegram', className: 'notify', x: 23, y: 16 }
 ] as const;
 
 const navItems = ['Workflows', 'Executions', 'Tasks', 'Documents', 'Agents', 'Integrations'];
-const events = ['Email payload received', 'Text extracted', 'LLM response streaming'];
 
 export default function HomePage() {
   return (
@@ -83,22 +85,10 @@ export default function HomePage() {
               </dl>
             </section>
 
-            <section>
-              <h2>Execution stream</h2>
-              <ol className="events">
-                {events.map((event) => (
-                  <li key={event}>
-                    <span />
-                    {event}
-                  </li>
-                ))}
-              </ol>
-            </section>
+            <RealtimePanel nodes={workflowNodes} />
           </aside>
         </section>
       </main>
     </div>
   );
 }
-import type { CSSProperties } from 'react';
-

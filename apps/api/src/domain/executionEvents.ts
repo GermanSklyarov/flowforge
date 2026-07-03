@@ -47,6 +47,15 @@ export type ExecutionEvent =
       nodeType: string;
       timestamp: string;
       error: string;
+    }
+  | {
+      type: 'node.output.delta';
+      executionId: string;
+      workflowId: string;
+      nodeId: string;
+      nodeType: string;
+      timestamp: string;
+      text: string;
     };
 
 export type ExecutionEventPublisher = {

@@ -89,6 +89,6 @@ Additional providers such as Anthropic can be added as separate implementations 
 
 ## Realtime Layer
 
-Workflow execution emits lifecycle events for execution and node state changes. The worker publishes those events to Redis pub/sub, and the NestJS API subscribes through a WebSocket gateway.
+Workflow execution emits lifecycle events for execution and node state changes. Streaming LLM nodes also emit `node.output.delta` events while text is being generated. The worker publishes those events to Redis pub/sub, and the NestJS API subscribes through a WebSocket gateway.
 
-Clients connect to the `/executions` Socket.IO namespace, subscribe to an execution ID, and receive `execution.event` payloads for that execution room.
+Clients connect to the `/executions` Socket.IO namespace, subscribe to an execution ID, and receive `execution.event` payloads for that execution room. The web inspector uses those events to display node status and partial LLM output.

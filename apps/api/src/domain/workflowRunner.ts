@@ -4,7 +4,12 @@ import {
   type ExecutionEventPublisher
 } from './executionEvents';
 import { resolveNodeExecutionPolicy, type NodeExecutionPolicy } from './nodeExecutionPolicy';
-import { defaultNodeHandlers, type NodeHandlerRegistry, type NodeHandlerResult } from './nodeHandlers';
+import {
+  defaultNodeHandlers,
+  type NodeHandlerEvent,
+  type NodeHandlerRegistry,
+  type NodeHandlerResult
+} from './nodeHandlers';
 import type { WorkflowRecord } from './workflowRepository';
 import type { WorkflowEdge, WorkflowNode } from './workflowValidation';
 
@@ -81,6 +86,20 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
       const result = await runNodeWithPolicy(
         node,
         {
+          emit(event) {
+            if (event.type === 'node.output.delta') {
+              input.eventPublisher?.publish({
+                type: 'node.output.delta',
+                nodeId: node.id,
+                nodeType: node.type,
+                text: event.text,
+                ...createExecutionEventBase({
+                  executionId: input.executionId,
+                  workflowId: input.workflow.id
+                })
+              });
+            }
+          },
           executionInput: input.executionInput ?? {},
           inboundOutputs,
           nodeHandlers
@@ -162,6 +181,7 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
 async function executeNode(
   node: WorkflowNode,
   input: {
+    emit(event: NodeHandlerEvent): void;
     executionInput: Record<string, unknown>;
     inboundOutputs: Record<string, Record<string, unknown>>;
     nodeHandlers: NodeHandlerRegistry;
@@ -174,6 +194,7 @@ async function executeNode(
   }
 
   return handler({
+    emit: input.emit,
     executionInput: input.executionInput,
     inboundOutputs: input.inboundOutputs,
     node
@@ -183,6 +204,7 @@ async function executeNode(
 async function runNodeWithPolicy(
   node: WorkflowNode,
   input: {
+    emit(event: NodeHandlerEvent): void;
     executionInput: Record<string, unknown>;
     inboundOutputs: Record<string, Record<string, unknown>>;
     nodeHandlers: NodeHandlerRegistry;
