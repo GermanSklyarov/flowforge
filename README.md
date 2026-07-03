@@ -12,6 +12,7 @@ This repository starts with a TypeScript product foundation:
 - Typed workflow node handler registry with per-node retry and timeout policy.
 - LLM provider abstraction with deterministic local, OpenAI Responses, and streaming response support.
 - Tool-calling contract with a registry for FlowForge actions.
+- Agent registry with a first task-breakdown agent.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 
@@ -65,7 +66,7 @@ LLM execution:
 1. Project foundation: repository structure, API skeleton, workflow domain model, editor shell, Docker Compose.
 2. Persistent workflows: PostgreSQL schema, migrations, workflow CRUD, validation at write time.
 3. Execution engine: graph runner, typed node handlers, decision routing, per-node retry and timeout policy, BullMQ queue, worker process, execution history.
-4. LLM integration: provider abstraction, streaming responses, prompt templates, tool calling contract.
+4. LLM integration: provider abstraction, streaming responses, prompt templates, tool calling contract, agent definitions.
 5. Realtime UX: WebSocket event stream for agent steps, node status, logs, and partial LLM output.
 6. Task management: Jira-like projects, tasks, comments, labels, assignments, workflow-created tasks.
 7. Integrations: Telegram, webhook triggers, email ingestion, outbound HTTP, credentials vault.

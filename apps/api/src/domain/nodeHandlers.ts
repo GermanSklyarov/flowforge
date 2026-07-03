@@ -1,4 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import {
+  createDefaultAgentRegistry,
+  runAgent,
+  type AgentRegistry
+} from './agentRegistry';
 import { LocalLlmProvider, type LlmProvider } from './llmProvider';
 import { callTool, defaultToolRegistry, type ToolRegistry } from './toolRegistry';
 import type { WorkflowNode } from './workflowValidation';
@@ -19,11 +24,13 @@ export type NodeHandler = (context: NodeHandlerContext) => Promise<NodeHandlerRe
 export type NodeHandlerRegistry = Record<string, NodeHandler>;
 
 export type NodeHandlerDependencies = {
+  agentRegistry: AgentRegistry;
   llmProvider: LlmProvider;
   toolRegistry: ToolRegistry;
 };
 
 const defaultNodeHandlerDependencies: NodeHandlerDependencies = {
+  agentRegistry: createDefaultAgentRegistry(),
   llmProvider: new LocalLlmProvider(),
   toolRegistry: defaultToolRegistry
 };
@@ -143,6 +150,23 @@ export function createDefaultNodeHandlers(
       };
     },
 
+    'ai.agent': async ({ inboundOutputs, node }) => {
+      const agentInput = resolveAgentInput(inboundOutputs, node);
+      const result = await runAgent({
+        agentRegistry: dependencies.agentRegistry,
+        llmProvider: dependencies.llmProvider,
+        toolRegistry: dependencies.toolRegistry,
+        run: agentInput
+      });
+
+      return {
+        output: {
+          agent: result.name,
+          result: result.output
+        }
+      };
+    },
+
     'logic.decision': async ({ inboundOutputs, node }) => {
       const configuredRoute = node.config?.route;
       const selectedOutputPort =
@@ -237,6 +261,37 @@ function resolveToolCallInput(
     arguments: {
       ...(isRecord(inboundArguments) ? inboundArguments : {}),
       ...configuredArguments
+    }
+  };
+}
+
+function resolveAgentInput(
+  inboundOutputs: Record<string, Record<string, unknown>>,
+  node: WorkflowNode
+): { name: string; task: string; context: Record<string, unknown> } {
+  const name = firstString([
+    node.config?.agentName,
+    ...Object.values(inboundOutputs).map((output) => output.agentName)
+  ]);
+
+  if (!name) {
+    throw new Error(`Node "${node.id}" requires config.agentName.`);
+  }
+
+  const task = firstString([
+    node.config?.task,
+    ...Object.values(inboundOutputs).flatMap((output) => [output.task, output.text, output.response])
+  ]);
+
+  if (!task) {
+    throw new Error(`Node "${node.id}" requires a task input.`);
+  }
+
+  return {
+    name,
+    task,
+    context: {
+      inboundOutputs
     }
   };
 }

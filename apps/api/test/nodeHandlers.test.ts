@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import type { AgentRegistry } from '../src/domain/agentRegistry';
 import type { LlmProvider } from '../src/domain/llmProvider';
 import { createDefaultNodeHandlers } from '../src/domain/nodeHandlers';
 import { defaultToolRegistry } from '../src/domain/toolRegistry';
@@ -218,6 +219,63 @@ describe('createDefaultNodeHandlers', () => {
       }),
       /requires config\.toolName/
     );
+  });
+
+  it('executes registered agents with task input', async () => {
+    const agentRegistry: AgentRegistry = {
+      taskBreakdown: {
+        name: 'taskBreakdown',
+        description: 'Breaks a task into subtasks.',
+        async run(context) {
+          return {
+            task: context.task,
+            subtasks: [
+              {
+                title: 'First subtask',
+                description: 'Start here.'
+              }
+            ]
+          };
+        }
+      }
+    };
+    const handlers = createDefaultNodeHandlers({
+      agentRegistry,
+      llmProvider: createUnexpectedLlmProvider(),
+      toolRegistry: defaultToolRegistry
+    });
+    const agentHandler = handlers['ai.agent'];
+
+    assert.ok(agentHandler);
+
+    const result = await agentHandler({
+      executionInput: {},
+      inboundOutputs: {
+        extract: {
+          text: 'Build a task board'
+        }
+      },
+      node: {
+        id: 'agent',
+        type: 'ai.agent',
+        config: {
+          agentName: 'taskBreakdown'
+        }
+      }
+    });
+
+    assert.deepEqual(result.output, {
+      agent: 'taskBreakdown',
+      result: {
+        task: 'Build a task board',
+        subtasks: [
+          {
+            title: 'First subtask',
+            description: 'Start here.'
+          }
+        ]
+      }
+    });
   });
 });
 

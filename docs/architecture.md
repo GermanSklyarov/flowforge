@@ -83,4 +83,6 @@ Streaming is exposed through the same provider contract as an async event stream
 
 Tool calling uses a separate `ToolRegistry` contract. The first tools are deterministic FlowForge actions such as `createTask` and `searchUsers`, and the `ai.toolCall` node executes registered tools with structured arguments. This same registry is the planned source of truth for MCP-exposed tools.
 
+Agents use an `AgentRegistry` contract. The first registered agent is `taskBreakdown`, which asks the configured LLM provider for structured subtasks and falls back to deterministic subtasks if the model returns non-JSON text. The `ai.agent` node runs agents with task input and stores the agent result in execution history.
+
 Additional providers such as Anthropic can be added as separate implementations without changing the workflow runner or node handler contract.

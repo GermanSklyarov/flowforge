@@ -32,7 +32,7 @@
 - [x] Add external LLM provider implementation.
 - [x] Add streaming LLM node.
 - [x] Add tool-calling node contract.
-- [ ] Add agent definitions.
+- [x] Add agent definitions.
 
 ## Phase 5: Realtime
 

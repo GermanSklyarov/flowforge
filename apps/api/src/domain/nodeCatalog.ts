@@ -57,6 +57,14 @@ export const nodeCatalog = [
     outputs: ['result']
   },
   {
+    type: 'ai.agent',
+    label: 'Agent',
+    group: 'AI',
+    description: 'Runs a registered FlowForge agent against a task and context.',
+    inputs: ['task', 'context'],
+    outputs: ['result']
+  },
+  {
     type: 'logic.decision',
     label: 'Decision',
     group: 'Logic',
