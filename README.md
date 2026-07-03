@@ -13,6 +13,7 @@ This repository starts with a TypeScript product foundation:
 - LLM provider abstraction with deterministic local, OpenAI Responses, and streaming response support.
 - Tool-calling contract with a registry for FlowForge actions.
 - Agent registry with a first task-breakdown agent.
+- Redis-backed execution event stream exposed through a NestJS WebSocket gateway.
 - Shared workflow vocabulary documented in code and docs.
 - Docker Compose for one-command local startup.
 
@@ -40,6 +41,12 @@ API:
 - `POST http://localhost:4000/workflows/:id/run`
 - `GET http://localhost:4000/workflows/:id/executions`
 - `GET http://localhost:4000/workflows/:id/executions/:executionId`
+
+Realtime:
+
+- Socket.IO namespace: `ws://localhost:4000/executions`
+- Emit `execution.subscribe` with `{ "executionId": "..." }`
+- Listen for `execution.event`
 
 Web:
 

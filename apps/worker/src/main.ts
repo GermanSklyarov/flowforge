@@ -3,6 +3,7 @@ import { getConfig } from '../../api/src/config';
 import { createPool } from '../../api/src/db/pool';
 import { PostgresExecutionRepository } from '../../api/src/db/postgresExecutionRepository';
 import { PostgresWorkflowRepository } from '../../api/src/db/postgresWorkflowRepository';
+import { RedisExecutionEventPublisher } from '../../api/src/domain/executionEvents';
 import { createConfiguredLlmProvider } from '../../api/src/domain/llmProvider';
 import { createDefaultNodeHandlers } from '../../api/src/domain/nodeHandlers';
 import { runWorkflowGraph } from '../../api/src/domain/workflowRunner';
@@ -21,6 +22,7 @@ if (!config.databaseUrl) {
 const pool = createPool({ connectionString: config.databaseUrl });
 const executionRepository = new PostgresExecutionRepository(pool);
 const workflowRepository = new PostgresWorkflowRepository(pool);
+const executionEventPublisher = new RedisExecutionEventPublisher(config.redisUrl);
 const nodeHandlers = createDefaultNodeHandlers({
   llmProvider: createConfiguredLlmProvider({
     apiKey: config.openaiApiKey,
@@ -49,6 +51,7 @@ const worker = new Worker<WorkflowExecutionJobData>(
       workflow,
       executionInput: execution.input,
       executionRepository,
+      eventPublisher: executionEventPublisher,
       nodeHandlers
     });
   },
@@ -70,6 +73,7 @@ console.log(`FlowForge worker listening on BullMQ queue "${EXECUTION_QUEUE_NAME}
 
 async function shutdown(): Promise<void> {
   await worker.close();
+  await executionEventPublisher.close();
   await pool.end();
 }
 

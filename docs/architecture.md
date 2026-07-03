@@ -86,3 +86,9 @@ Tool calling uses a separate `ToolRegistry` contract. The first tools are determ
 Agents use an `AgentRegistry` contract. The first registered agent is `taskBreakdown`, which asks the configured LLM provider for structured subtasks and falls back to deterministic subtasks if the model returns non-JSON text. The `ai.agent` node runs agents with task input and stores the agent result in execution history.
 
 Additional providers such as Anthropic can be added as separate implementations without changing the workflow runner or node handler contract.
+
+## Realtime Layer
+
+Workflow execution emits lifecycle events for execution and node state changes. The worker publishes those events to Redis pub/sub, and the NestJS API subscribes through a WebSocket gateway.
+
+Clients connect to the `/executions` Socket.IO namespace, subscribe to an execution ID, and receive `execution.event` payloads for that execution room.

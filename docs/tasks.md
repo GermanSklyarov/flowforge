@@ -36,8 +36,8 @@
 
 ## Phase 5: Realtime
 
-- [ ] Add WebSocket gateway.
-- [ ] Stream execution events to the editor.
+- [x] Add WebSocket gateway.
+- [x] Stream execution events to the editor.
 - [ ] Show live node status and LLM partial output.
 
 ## Phase 6: RAG and MCP

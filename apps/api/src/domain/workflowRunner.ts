@@ -1,4 +1,8 @@
 import type { ExecutionRepository } from './executionRepository';
+import {
+  createExecutionEventBase,
+  type ExecutionEventPublisher
+} from './executionEvents';
 import { resolveNodeExecutionPolicy, type NodeExecutionPolicy } from './nodeExecutionPolicy';
 import { defaultNodeHandlers, type NodeHandlerRegistry, type NodeHandlerResult } from './nodeHandlers';
 import type { WorkflowRecord } from './workflowRepository';
@@ -9,6 +13,7 @@ export type WorkflowRunnerInput = {
   workflow: WorkflowRecord;
   executionInput?: Record<string, unknown>;
   executionRepository: ExecutionRepository;
+  eventPublisher?: ExecutionEventPublisher;
   nodeHandlers?: NodeHandlerRegistry;
 };
 
@@ -25,6 +30,13 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
   const visitedNodeIds: string[] = [];
 
   await input.executionRepository.markRunning(input.executionId);
+  input.eventPublisher?.publish({
+    type: 'execution.started',
+    ...createExecutionEventBase({
+      executionId: input.executionId,
+      workflowId: input.workflow.id
+    })
+  });
 
   try {
     for (const nodeId of orderedNodes) {
@@ -56,6 +68,15 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
           policy
         }
       });
+      input.eventPublisher?.publish({
+        type: 'node.started',
+        nodeId: node.id,
+        nodeType: node.type,
+        ...createExecutionEventBase({
+          executionId: input.executionId,
+          workflowId: input.workflow.id
+        })
+      });
 
       const result = await runNodeWithPolicy(
         node,
@@ -68,12 +89,33 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
       ).catch(async (error: unknown) => {
         const message = error instanceof Error ? error.message : 'Workflow node execution failed.';
         await input.executionRepository.failNode(nodeExecution.id, message);
+        input.eventPublisher?.publish({
+          type: 'node.failed',
+          nodeId: node.id,
+          nodeType: node.type,
+          error: message,
+          ...createExecutionEventBase({
+            executionId: input.executionId,
+            workflowId: input.workflow.id
+          })
+        });
         throw error;
       });
 
-      await input.executionRepository.completeNode(nodeExecution.id, {
+      const nodeOutput = {
         ...result.output,
         attempts: result.attempts
+      };
+      await input.executionRepository.completeNode(nodeExecution.id, nodeOutput);
+      input.eventPublisher?.publish({
+        type: 'node.succeeded',
+        nodeId: node.id,
+        nodeType: node.type,
+        output: nodeOutput,
+        ...createExecutionEventBase({
+          executionId: input.executionId,
+          workflowId: input.workflow.id
+        })
       });
       outputsByNodeId.set(node.id, result.output);
       visitedNodeIds.push(node.id);
@@ -85,16 +127,34 @@ export async function runWorkflowGraph(input: WorkflowRunnerInput): Promise<Work
       });
     }
 
-    await input.executionRepository.markSucceeded(input.executionId, {
+    const output = {
       visitedNodeIds
+    };
+    await input.executionRepository.markSucceeded(input.executionId, output);
+    input.eventPublisher?.publish({
+      type: 'execution.succeeded',
+      output,
+      ...createExecutionEventBase({
+        executionId: input.executionId,
+        workflowId: input.workflow.id
+      })
     });
 
     return { visitedNodeIds };
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Workflow execution failed.';
     await input.executionRepository.markFailed(
       input.executionId,
-      error instanceof Error ? error.message : 'Workflow execution failed.'
+      message
     );
+    input.eventPublisher?.publish({
+      type: 'execution.failed',
+      error: message,
+      ...createExecutionEventBase({
+        executionId: input.executionId,
+        workflowId: input.workflow.id
+      })
+    });
     throw error;
   }
 }
